@@ -1,0 +1,130 @@
+<html>
+
+<head>
+    <title>Socket Test</title>
+    <link rel="stylesheet" href="/theme.css" />
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+</head>
+
+<body>
+<!-- <h1>Socket Test</h1> -->
+<input class="chat-type" placeholder="Socket Test" type="text" onchange="onType(event)" />
+
+<script>
+    // browser
+    const log = console.log;
+
+    function onType(e){
+        console.log("onType", e.target);
+        if(!socket) return;
+        var msg = e.target.value;
+        var action = msg.split(" ")[0];
+        var tend = msg.split(" ")[1];
+        if(msg=="bye"){
+            socket.emit('bye', msg);
+        }else if(action=="join" && tend){
+            socket.emit("join", msg.split(" ")[1]);
+        }else if(action=="leave" && tend){
+            socket.emit("leave", msg.split(" ")[1]);
+        }else if(action=="notice" && tend ){
+            socket.emit("notice", msg.split(" ")[1])
+        }else if(action=="msg", msg.split(" ")[1]){
+            socket.emit("msg", msg.split("")[1])
+        }else if(action=="open", msg.split("")[1]){
+            socket.emit("open", msg.split("")[1])
+        }else{
+            socket.emit("chat", msg);
+        }
+        addMessage("send", {userId, text: msg});
+        e.target.value = "";
+    }
+
+    var userId = `client_${Math.random().toFixed(5).substr(2)}`;
+    var it = document.createElement('ul');
+    it.className = "messages";
+
+    document.body.appendChild(it)
+    function addMessage(type, msg){
+        var li = document.createElement('li');
+        li.innerHTML = "<i>"+msg.text+"</i>"+"<b>"+msg.userId+"</b>";
+        li.className = type+" "+(msg.type || "");
+        if(userId==msg.userId){
+            li.className += " self";
+        }
+        if((msg.text=="connected!" || msg.text=="disconnected!") && msg.rooms){
+            var rooms = Object.keys(msg.rooms).length;
+            var s = [];
+            for(var i in msg.rooms){
+                s.push("<b>Room:"+i+" Numbers:"+msg.rooms[i].length+"</b>")
+            }
+            li.innerHTML += "<div>"+s.join("<br>")+"</div>";
+        }
+        it.appendChild(li);
+    }
+
+
+    window.onload = function() {
+
+        // init
+        var room = 'tent-lodge';
+        //var namespace = '/';
+        // namespace = '/example';
+        namespace = "http://127.0.0.1:5000";
+
+        // var socket = io();
+        var socket = io(namespace);
+        // const socket = io(namespace, {
+        //   // Actual use can pass parameters here
+        //   query: {
+        //     room,
+        //     userId,
+        //   },
+        //   transports: ['websocket']
+        // });
+
+        socket.on('connect', () => {
+            const id = socket.id;
+
+            log('#connect,', id, socket); // receive online user information
+            addMessage("connect", {userId, text: "connected "+id});
+            var msg = 'Hello Socket.io!';
+            socket.emit('chat', msg);
+            addMessage("send", {userId, text: msg});
+
+            // listen for its own id to implement p2p communication
+            socket.on(id, msg => {
+                log('#receive,', msg);
+            });
+        });
+
+        socket.on('res', msg => {
+            addMessage("received", msg);
+            console.log('res from server:', msg);
+        });
+
+        socket.on('online', msg => {
+            log('#online,', msg);
+        });
+
+        // system events
+        socket.on('disconnect', msg => {
+            log('#disconnect', msg);
+        });
+
+        socket.on('disconnecting', () => {
+            log('#disconnecting');
+        });
+
+        socket.on('error', (res) => {
+            log('#error', res);
+        });
+
+        window.socket = socket;
+    };
+
+</script>
+
+</body>
+
+</html>
